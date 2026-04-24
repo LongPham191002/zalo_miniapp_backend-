@@ -249,6 +249,17 @@ function createSwaggerSpec(serverUrl) {
             },
           },
         },
+        PdfMetadata: {
+          type: "object",
+          properties: {
+            status: { type: "string", example: "generated" },
+            filename: { type: "string", example: "Bao-cao-HTO-Phan-Duc-Toan.pdf" },
+            contentType: { type: "string", example: "application/pdf" },
+            sizeInBytes: { type: "integer", example: 148320 },
+            pageCount: { type: "integer", example: 6 },
+            generatedAt: { type: "string", format: "date-time" },
+          },
+        },
         DebugWebhookPayloadRequest: {
           type: "object",
           required: ["type"],
@@ -440,6 +451,38 @@ function createSwaggerSpec(serverUrl) {
             400: {
               description: "Yeu cau khong hop le",
               content: { "application/json": { schema: { $ref: "#/components/schemas/GenericError" } } },
+            },
+            404: {
+              description: "Khong tim thay submission",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/GenericError" } } },
+            },
+          },
+        },
+      },
+      "/api/numerology/report/{submissionId}.pdf": {
+        get: {
+          tags: ["Numerology"],
+          summary: "Tao va tai bao cao PDF theo submissionId",
+          parameters: [
+            {
+              name: "submissionId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+              example: "4a524918-4839-4a74-8820-5c4503c2d600",
+            },
+          ],
+          responses: {
+            200: {
+              description: "Tra ve file PDF bao cao numerology",
+              content: {
+                "application/pdf": {
+                  schema: {
+                    type: "string",
+                    format: "binary",
+                  },
+                },
+              },
             },
             404: {
               description: "Khong tim thay submission",

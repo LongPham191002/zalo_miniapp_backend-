@@ -5,7 +5,7 @@ function mapLeadPayload(payload) {
     sheet_name: "NUMEROLOGY_LEADS",
     event_type: "numerology_lead_sync",
     source: "Zalo_MiniApp_Numerology",
-    full_name: payload.customer?.full_name || "Khach Numerology",
+    full_name: payload.customer?.full_name || "Khách Numerology",
     phone: payload.customer?.phone || "",
     email: payload.customer?.email || "",
     submission_id: payload.submission_id || "",
@@ -24,7 +24,7 @@ function mapFeedbackPayload(payload) {
   return {
     sheet_name: "NUMEROLOGY_FEEDBACK",
     event_type: "numerology_feedback_sync",
-    full_name: payload.student_name || "Khach Feedback",
+    full_name: payload.student_name || "Khách Feedback",
     phone: payload.phone || "",
     email: payload.email || "",
     birth_date: payload.birth_date || "",
@@ -44,7 +44,7 @@ function mapConsultationPayload(payload) {
   return {
     sheet_name: "NUMEROLOGY_AUTOMATION",
     event_type: "consultation_completed",
-    full_name: payload.student_name || "Khach Tu Van",
+    full_name: payload.student_name || "Khách Tư Vấn",
     phone: payload.phone || "",
     email: payload.email || "",
     birth_date: payload.birth_date || "",

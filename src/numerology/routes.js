@@ -1,3 +1,7 @@
+/**
+ * Numerology Routes Module
+ * Handles API endpoints for numerology calculation, lead feedback, consultation tracking, and PDF generation.
+ */
 const express = require("express");
 const crypto = require("crypto");
 
@@ -8,7 +12,17 @@ const {
   mapFeedbackPayload,
   mapConsultationPayload,
 } = require("../services/bizCrm");
+const { generateNumerologyPdf } = require("../services/pdfReport");
 
+/**
+ * Builds the payload structure required by the CRM system for a new lead.
+ * Formats addresses, education levels, and suggested markets to match CRM specifications.
+ * 
+ * @param {Object} input - The raw user input from the submission form.
+ * @param {Object} result - The calculated numerology results.
+ * @param {string} submissionId - Unique identifier for this submission.
+ * @returns {Object} The formatted CRM payload containing customer, result, and marketing data.
+ */
 function buildCrmPayload(input, result, submissionId) {
   const addressParts = [input.district, input.province].filter(Boolean);
 
@@ -58,6 +72,12 @@ function buildCrmPayload(input, result, submissionId) {
   };
 }
 
+/**
+ * Generates a default, skipped state for CRM synchronization.
+ * Used when the CRM service is not configured or disabled.
+ * 
+ * @returns {Object} Default CRM sync state object.
+ */
 function buildDefaultCrmState() {
   return {
     enabled: false,
@@ -66,6 +86,13 @@ function buildDefaultCrmState() {
   };
 }
 
+/**
+ * Saves an automation event (e.g., CRM sync result, PDF generation) to the database.
+ * 
+ * @param {Object} repository - Database repository instance.
+ * @param {Object} payload - The automation event data to persist.
+ * @returns {Promise<Object|null>} The saved automation log or null if saving is not supported.
+ */
 async function persistAutomationEvent(repository, payload) {
   if (!repository?.saveAutomationEvent) {
     return null;
@@ -78,26 +105,44 @@ async function persistAutomationEvent(repository, payload) {
   });
 }
 
+/**
+ * Validates the required fields and constraints for a new numerology submission.
+ * 
+ * @param {Object} body - The request body to validate.
+ * @returns {string|null} An error message if validation fails, or null if successful.
+ */
 function validateSubmission(body) {
   const requiredFields = ["fullName", "phone", "email", "birthDate", "educationLevel"];
   const missing = requiredFields.filter((field) => !body[field]);
 
   if (missing.length) {
-    return `Thieu truong bat buoc: ${missing.join(", ")}`;
+    return `Thiếu trường bắt buộc: ${missing.join(", ")}`;
   }
 
   if (!EDUCATION_LEVELS.some((item) => item.value === body.educationLevel)) {
-    return "educationLevel khong hop le";
+    return "educationLevel không hợp lệ";
   }
 
   return null;
 }
 
+/**
+ * Factory function to create the Express router for numerology endpoints.
+ * Injects necessary dependencies like the database repository and external services.
+ * 
+ * @param {Object} repository - Data access layer for submissions, feedbacks, etc.
+ * @param {Object} services - External services (e.g., crmService, automationService).
+ * @returns {express.Router} The configured Express router.
+ */
 function createNumerologyRouter(repository, services = {}) {
   const router = express.Router();
   const crmService = services.crmService;
   const automationService = services.automationService;
 
+  /**
+   * GET /meta
+   * Returns metadata used by the frontend, such as education level options and feedback ratings.
+   */
   router.get("/meta", (req, res) => {
     return res.json({
       success: true,
@@ -108,6 +153,12 @@ function createNumerologyRouter(repository, services = {}) {
     });
   });
 
+  /**
+   * POST /analyze
+   * Main endpoint to process a numerology submission.
+   * Validates input, calculates core numbers, saves the submission,
+   * attempts to sync with the CRM, and logs the automation event.
+   */
   router.post("/analyze", async (req, res) => {
     try {
       const validationError = validateSubmission(req.body);
@@ -177,6 +228,12 @@ function createNumerologyRouter(repository, services = {}) {
     }
   });
 
+  /**
+   * POST /feedback
+   * Handles staff feedback on a specific numerology lead.
+   * Calculates urgency based on rating, saves feedback to DB,
+   * syncs with CRM, and determines next action (e.g., high priority care).
+   */
   router.post("/feedback", async (req, res) => {
     try {
       const { submissionId, staffId, rating, comment, leadId } = req.body;
@@ -184,14 +241,14 @@ function createNumerologyRouter(repository, services = {}) {
       if (!submissionId || !rating) {
         return res.status(400).json({
           success: false,
-          message: "Thieu submissionId hoac rating",
+          message: "Thiếu submissionId hoặc rating",
         });
       }
 
       if (!FEEDBACK_RATINGS.some((item) => item.value === Number(rating))) {
         return res.status(400).json({
           success: false,
-          message: "rating khong hop le",
+          message: "rating không hợp lệ",
         });
       }
 
@@ -251,8 +308,8 @@ function createNumerologyRouter(repository, services = {}) {
           urgency,
           nextAction:
             urgency === "high"
-              ? "Tao ticket cham soc khan tren CRM"
-              : "Ghi nhan feedback va tiep tuc flow nuoi duong",
+              ? "Tạo ticket chăm sóc khẩn trên CRM"
+              : "Ghi nhận feedback và tiếp tục flow nuôi dưỡng",
           persistence,
           crmSync,
           automationLog,
@@ -266,6 +323,12 @@ function createNumerologyRouter(repository, services = {}) {
     }
   });
 
+  /**
+   * POST /consultation-completed
+   * Marks a consultation as completed by a staff member.
+   * Generates feedback links, updates the lead status in CRM,
+   * and records the consultation completion event.
+   */
   router.post("/consultation-completed", async (req, res) => {
     try {
       const { submissionId, leadId, staffId, staffName, studentName } = req.body;
@@ -273,7 +336,7 @@ function createNumerologyRouter(repository, services = {}) {
       if (!submissionId) {
         return res.status(400).json({
           success: false,
-          message: "Thieu submissionId",
+          message: "Thiếu submissionId",
         });
       }
 
@@ -284,7 +347,7 @@ function createNumerologyRouter(repository, services = {}) {
       if (!submission) {
         return res.status(404).json({
           success: false,
-          message: "Khong tim thay submission",
+          message: "Không tìm thấy submission",
         });
       }
 
@@ -293,11 +356,11 @@ function createNumerologyRouter(repository, services = {}) {
         : null;
       const feedbackMessage = automationService
         ? automationService.buildFeedbackMessage({
-            studentName: studentName || submission.input?.fullName,
-            suggestedProgramTitle: submission.result?.suggestedProgram?.title,
-            staffName,
-            feedbackLink,
-          })
+          studentName: studentName || submission.input?.fullName,
+          suggestedProgramTitle: submission.result?.suggestedProgram?.title,
+          staffName,
+          feedbackLink,
+        })
         : null;
 
       const automationPayload = {
@@ -350,6 +413,12 @@ function createNumerologyRouter(repository, services = {}) {
     }
   });
 
+  /**
+   * POST /debug-webhook-payload
+   * Utility endpoint for developers to preview the exact payloads
+   * that will be sent to external webhooks (CRM, Google Sheets, etc.)
+   * without actually sending them or saving to the database.
+   */
   router.post("/debug-webhook-payload", async (req, res) => {
     try {
       const { type } = req.body;
@@ -399,7 +468,7 @@ function createNumerologyRouter(repository, services = {}) {
         if (!submissionId || !rating) {
           return res.status(400).json({
             success: false,
-            message: "Thieu submissionId hoac rating",
+            message: "Thiếu submissionId hoặc rating",
           });
         }
 
@@ -410,7 +479,7 @@ function createNumerologyRouter(repository, services = {}) {
         if (!submission) {
           return res.status(404).json({
             success: false,
-            message: "Khong tim thay submission",
+            message: "Không tìm thấy submission",
           });
         }
 
@@ -445,7 +514,7 @@ function createNumerologyRouter(repository, services = {}) {
         if (!submissionId) {
           return res.status(400).json({
             success: false,
-            message: "Thieu submissionId",
+            message: "Thiếu submissionId",
           });
         }
 
@@ -456,7 +525,7 @@ function createNumerologyRouter(repository, services = {}) {
         if (!submission) {
           return res.status(404).json({
             success: false,
-            message: "Khong tim thay submission",
+            message: "Không tìm thấy submission",
           });
         }
 
@@ -490,8 +559,63 @@ function createNumerologyRouter(repository, services = {}) {
 
       return res.status(400).json({
         success: false,
-        message: "type khong hop le",
+        message: "type không hợp lệ",
       });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  });
+
+  /**
+   * GET /report/:submissionId.pdf
+   * Generates and returns a personalized PDF report for a given submission.
+   * Updates the submission record with PDF metadata upon successful generation.
+   */
+  router.get("/report/:submissionId.pdf", async (req, res) => {
+    try {
+      const { submissionId } = req.params;
+      const submission = repository?.getSubmissionById
+        ? await repository.getSubmissionById(submissionId)
+        : null;
+
+      if (!submission) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy submission",
+        });
+      }
+
+      const report = await generateNumerologyPdf({ submission });
+
+      const pdfPersistence = repository?.updateSubmissionPdf
+        ? await repository.updateSubmissionPdf(submissionId, {
+          status: "generated",
+          filename: report.filename,
+          contentType: report.contentType,
+          sizeInBytes: report.buffer.length,
+          pageCount: report.pageCount,
+          generatedAt: new Date().toISOString(),
+        })
+        : null;
+
+      await persistAutomationEvent(repository, {
+        type: "pdf_generated",
+        submissionId,
+        payload: {
+          filename: report.filename,
+          sizeInBytes: report.buffer.length,
+          pageCount: report.pageCount,
+        },
+        result: pdfPersistence,
+      });
+
+      res.setHeader("Content-Type", report.contentType);
+      res.setHeader("Content-Length", report.buffer.length);
+      res.setHeader("Content-Disposition", `attachment; filename="${report.filename}"`);
+      return res.send(report.buffer);
     } catch (error) {
       return res.status(500).json({
         success: false,
