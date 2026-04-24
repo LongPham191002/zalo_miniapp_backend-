@@ -69,7 +69,7 @@ app.post("/get-phone-new", async (req, res) => {
 
   try {
     const response = await axios.get("https://graph.zalo.me/v2.0/me/info", {
-      headers: { access_token: accessToken, code, secret_key: ZALO_SECRET_KEY_2 },
+      headers: { access_token: accessToken, code, secret_key: ZALO_DV_ID },
     });
     return res.json(response.data);
   } catch (err) {

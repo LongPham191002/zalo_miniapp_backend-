@@ -67,7 +67,7 @@ jobs:
             # Restart containers
             cd /opt/zalo-backend
             docker compose pull
-            docker compose up -d
+            docker compose up -d --force-recreate
 
             # Dọn image cũ
             docker image prune -f
