@@ -2,7 +2,7 @@ const axios = require("axios");
 
 function mapLeadPayload(payload) {
   return {
-    sheet_name: "NUMEROLOGY_LEADS",
+    sheet_name: "Thần số học",
     event_type: "numerology_lead_sync",
     source: "Zalo_MiniApp_Numerology",
     full_name: payload.customer?.full_name || "Khách Numerology",
@@ -22,7 +22,7 @@ function mapLeadPayload(payload) {
 
 function mapFeedbackPayload(payload) {
   return {
-    sheet_name: "NUMEROLOGY_FEEDBACK",
+    sheet_name: "Thần số học Feedback",
     event_type: "numerology_feedback_sync",
     full_name: payload.student_name || "Khách Feedback",
     phone: payload.phone || "",
@@ -42,7 +42,7 @@ function mapFeedbackPayload(payload) {
 
 function mapConsultationPayload(payload) {
   return {
-    sheet_name: "NUMEROLOGY_AUTOMATION",
+    sheet_name: "Thần số học Automation",
     event_type: "consultation_completed",
     full_name: payload.student_name || "Khách Tư Vấn",
     phone: payload.phone || "",
