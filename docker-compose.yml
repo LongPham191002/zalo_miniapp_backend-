@@ -16,7 +16,7 @@ services:
 
   # ─── Zalo Backend ───
   app:
-    image: ghcr.io/mkthtoct-lgtm/zalo_miniapp_backend-:latest
+    image: ghcr.io/mkthtoct-lgtm/zalo-miniapp-backend:latest
     container_name: zalo-backend
     restart: unless-stopped
     ports:
