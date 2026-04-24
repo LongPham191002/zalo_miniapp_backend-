@@ -32,6 +32,21 @@ class InMemoryRepository {
     return this.submissions.find((item) => item.id === id) || null;
   }
 
+  async updateSubmissionPdf(id, pdfInfo) {
+    const record = this.submissions.find((item) => item.id === id);
+    if (!record) {
+      return null;
+    }
+
+    record.pdf = {
+      ...(record.pdf || {}),
+      ...pdfInfo,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return { id, storage: "memory" };
+  }
+
   async getMeaningByNumber(number) {
     return this.meanings.find((item) => item.number === Number(number)) || null;
   }
@@ -93,6 +108,27 @@ class MongoRepository {
   async getSubmissionById(id) {
     await this.connect();
     return this.db.collection(this.submissionsCollection).findOne({ id });
+  }
+
+  async updateSubmissionPdf(id, pdfInfo) {
+    await this.connect();
+    const result = await this.db.collection(this.submissionsCollection).updateOne(
+      { id },
+      {
+        $set: {
+          pdf: {
+            ...pdfInfo,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      }
+    );
+
+    if (!result.matchedCount) {
+      return null;
+    }
+
+    return { id, storage: "mongodb" };
   }
 
   async getMeaningByNumber(number) {
