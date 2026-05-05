@@ -219,9 +219,10 @@ app.post("/api/khao-sat/submit", async (req, res) => {
       sheet_name: sheet_name,
     };
 
-    await pushToGoogleSheet(payloadToSheet);
+    const sheetResponse = await pushToGoogleSheet(payloadToSheet);
+    console.log("📋 Google Sheet response:", JSON.stringify(sheetResponse));
 
-    return res.json({ success: true, message: "Hồ sơ Khảo sát đã được tiếp nhận thành công." });
+    return res.json({ success: true, message: "Hồ sơ Khảo sát đã được tiếp nhận thành công.", sheetResponse });
   } catch (err) {
     console.error("❌ Lỗi khi đẩy Khảo Sát lên Google Sheet:", err.message);
     return res.status(500).json({ success: false, error: err.message, message: err.message });
