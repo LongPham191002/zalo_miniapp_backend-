@@ -214,7 +214,6 @@ app.post("/api/khao-sat/submit", async (req, res) => {
     } else if (data.pathway === "Trong nước") {
       sheet_name = "KHAO_SAT_HITO_V1"; // hoặc tên sheet khác nếu muốn
     }
-
     const payloadToSheet = {
       ...data,
       sheet_name: sheet_name,
